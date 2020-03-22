@@ -1,0 +1,10 @@
+#!/bin/bash
+(
+date
+echo $PATH
+PATH=$PATH:/bin:/sbin:/usr/bin:/usr/local/bin
+export PATH
+cd /home/pi
+screen -d -m -s /bin/bash mavproxy.py --master=/dev/ttyS0 --baudrate 115200 --o$
+) > /tmp/rc.log 2>&1
+exit 0

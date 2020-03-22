@@ -1,0 +1,157 @@
+\documentclass{article}
+\title{I2C table}
+\author{Gabriele Fadini}
+\usepackage{placeins}
+
+\begin{document}
+\maketitle
+
+\iffalse
+                Cristiano Fontana
+                Caen sys -> detector PI del progetto
+                Riunione Enea waste management as decommissioning
+                Sogin
+                Nucleco
+                Finocchiaro
+
+                Marco Ripani
+
+                Rivelatori prodotti commerciali o no
+                Dragon
+                Ansaldo -> droni UGV da terra
+                Manipolatori e strumentazione
+
+                Hot cell
+                Deposito 
+                Ambiente ostile
+                Radiation harness (per elettricità)
+                Non sanno cosa ci sia dentro alle centrali
+                Teleguidato
+
+                Droni per grandi pareti verticali e mappare camini, noccioli, mappatura volante di lunghezza variabile
+
+
+                700g 
+
+                Supporto in alluminio
+                O plastica sa stl
+                **Telaio**
+                + Robusto e certificato
+                + dji
+                + Matrice 600 (s600 o s900)
+                + Medesimo controllore
+
+                Brevetto volo sotto 4kg
+
+                Enac
+
+                Prove simulando carico
+                Cuscino gonfiabile
+\fi
+
+\section{DAC commands}
+
+Given the following requirements, specifications of the sensors and communication:
+\begin{itemize}
+    \item Start - Initialization (parametri)
+        \begin{itemize}
+            \item regulate high voltage tension thresholds \textbf{int 16bit}
+            \item threshold \textbf{int 16bit}
+        \end{itemize}
+       
+    \item Configuration and thresholds
+    \item Stop
+    \item Shutdown
+    \item Open save file file (on rpi sensor)
+        \begin{itemize}
+            \item File with timestamp ISO (8 char)
+        \end{itemize}
+    \item Close file 
+    \item Check status \textbf{255bytes}
+        \begin{itemize}
+            \item State machine status and ok
+        \end{itemize}
+
+
+    \item Sync orologio
+    \item Get spectrum
+    \item Get counts
+    \item Get count gamma
+    \item Get count n
+    \item Get id
+\end{itemize}
+
+
+
+\section{Register list}
+The following register table Tab. \ref{tab:reg_tab} is proposed.
+
+\begin{table}[h]
+    \centering
+    \begin{tabular}{c|c|c|c|c}
+        \textbf{Name} & \textbf{Address} & \textbf{Width} & \textbf{Access} & \textbf{Description}\\
+        DEVICEID & 0x00  &  8    & RW     &   Device ID\\
+        COUNT & 0x01  &  16    & RW     &   Measured counts n\\
+        GAMMA    & 0x01  &  16    & RW     &  Measured $\gamma$ \\
+        ID       & 0x01 & 8 & RW & Identification\\
+        SPCTR    & 0x01  &  16   & RW      & Spectrum\\
+        CMD     & 0x05  &  8    & RW    &   Command\\
+        CMD\_PARM & 0x05   &  256 & RW      & Command parameters\\
+        STATUS     & 0x06  &  2040    & RW      &   Status register\\
+        FILNM  &       &  256  & RW     &   Filname\\
+
+    \end{tabular}
+    \caption{Proposed register table}
+    \label{tab:reg_tab}
+\end{table}
+
+
+
+For command in CMD we need to use are at least 8 bit are enough to encode them with some margin:
+\begin{itemize}
+    \item Start Acquisition
+    \item Stop Acquisition
+    \item Open File + filename
+    \item Close File
+    \item Start Identification
+    \item Set HV +  values
+    \item Set treshold + values
+    \item Get spectrum
+    \item Get counts all
+    \item Get counts $\gamma$
+    \item Get counts n
+\end{itemize}
+
+Some commands need also another field of parameters for which there is an additional set of addresses CMD\_PARM, the actual 
+size of this address depends on the threshold number to be set.\\
+SPCTR encodes the dominant species of the analysis. There's margin, after the analysis is performed to send back either the additional species
+of isotopes or readings regarding their percentages, if needed. In this case, one should specify the number of bins and levels
+to send in the readings increasing the size of this register.\\
+ID is the Identification of the 
+For FILNAM we use ASCII Latin-1, making sure to eliminate wildcards, for a total length of 32 chars, the register needs to be 32bytes.
+
+\FloatBarrier
+
+\section{Status check}
+    This enables the check of multiple settings and the success or not of the previous command, the acquisiton and all the
+    actual thresholds of the device.
+    \begin{table}[h!]
+        \centering
+        \begin{tabular}{c|c|c}
+            \textbf{Bit \#} & \textbf{Access} & \textbf{Description}\\
+            0:8      & RW     & Last command ($2^{8}-1$ commands)\\
+            9      & RW     & Last command status (0 success, 1 fail)\\
+            10    & RW     & File Open Status (0 file open, 1 error)\\
+            11   & RW     & Acquisition running (0 running, 1 not running)\\
+            12:27 & RW     & High voltage setting \textbf{HV}  ($2^{16}$ levels)\\
+            28:43   & RW   & Counts levels \textbf{N} ($2^{16}$ levels)\\
+            44:59 & RW     & $1^{st}$ threshold (each one can be set on $2^{16}$ levels)\\
+            60:75 & RW     & $2^{nd}$ threshold\\
+            76:91 & RW     & $3^{rd}$ threshold\\
+            other to 255 & - & Reserved $\leftarrow$ can be used for other tresholds or status checks\\
+        \end{tabular}
+        \caption{Status register}
+        \label{tab:status}
+    \end{table}
+
+\end{document}
